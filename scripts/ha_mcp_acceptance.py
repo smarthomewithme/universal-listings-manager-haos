@@ -44,7 +44,7 @@ def setup_admin():
         try:
             if isinstance(request("/api/onboarding", auth=False, allow_error=True), list):
                 break
-        except (URLError, TimeoutError):
+        except (URLError, ConnectionError, TimeoutError):
             pass
         time.sleep(2)
     else:

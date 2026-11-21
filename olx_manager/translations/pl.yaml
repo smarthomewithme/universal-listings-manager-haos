@@ -1,0 +1,34 @@
+configuration:
+  owner_user_id:
+    name: Identyfikator właściciela w Home Assistant
+    description: Otwórz panel pierwszy raz, skopiuj swój identyfikator i uruchom aplikację ponownie.
+  mcp_enabled:
+    name: Nasłuch MCP
+    description: Wymaga losowego tokenu lokalnego albo konfiguracji zewnętrznego OAuth.
+  mcp_bearer_token:
+    name: Lokalny token MCP
+    description: Minimum 32 losowe znaki base64url. W połączeniu publicznym przez OAuth pozostaw puste.
+  mcp_resource_url:
+    name: Adres zasobu MCP
+    description: Pełny URL HTTPS zakończony /mcp, zgodny z audiencją tokenu OAuth.
+  mcp_issuer:
+    name: Wystawca OAuth MCP
+  mcp_jwks_url:
+    name: Adres JWKS dla OAuth MCP
+  mcp_subject:
+    name: Identyfikator konta OAuth
+  mock_enabled:
+    name: Symulacja publikacji
+  olx_public_base:
+    name: Domena HTTPS dla OLX
+    description: Osobny adres dla callbacku i podpisanych kopii zdjęć.
+  olx_write_enabled:
+    name: Włącz zapis do OLX Partner API
+    description: Włącz po sprawdzeniu dostępu uczciwie przyznanego przez OLX i potwierdzeniu opłat.
+  olx_allowed_categories:
+    name: Dozwolone ID kategorii OLX
+    description: ID potwierdzonych kategorii oddzielone przecinkami.
+  olx_no_charge_confirmed:
+    name: Potwierdzony brak kosztów tworzenia i aktualizacji
+  olx_daily_limit:
+    name: Dobowy limit prób zapisu do OLX

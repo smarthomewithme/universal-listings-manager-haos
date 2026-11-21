@@ -11,6 +11,7 @@ from models import Model
 SUPERVISOR_IP = "172.30.32.2"
 PANEL_PORT = 8099
 MCP_PORT = 8100
+HA_LLM_PORT = 8102
 OLX_PORT = 8101
 
 
@@ -37,6 +38,7 @@ class Settings(Model):
     dev_panel: bool = False
     owner_user_id: str = ""
     mcp_enabled: bool = False
+    ha_llm_token: str = Field("", repr=False)
     mcp_bearer_token: str = ""
     mcp_resource_url: str = ""
     mcp_issuer: str = ""
@@ -60,6 +62,11 @@ class Settings(Model):
             raise ValueError("Uzupełnij issuer, JWKS, subject i pełny adres HTTPS MCP zakończony /mcp.")
         if self.mcp_bearer_token and not re.fullmatch(r"[A-Za-z0-9_-]{32,200}", self.mcp_bearer_token):
             raise ValueError("Ustaw losowy token MCP base64url o długości co najmniej 32 znaków.")
+        if self.ha_llm_token and (
+            not re.fullmatch(r"[A-Za-z0-9_-]{32,200}", self.ha_llm_token)
+            or self.ha_llm_token == self.mcp_bearer_token
+        ):
+            raise ValueError("Ustaw osobny losowy token integracji HA (co najmniej 32 znaki base64url).")
         if self.mcp_enabled and not (self.mcp_bearer_token or self.mcp_resource_url):
             raise ValueError("Włączony MCP wymaga uwierzytelnienia.")
         if self.olx_public_base and (

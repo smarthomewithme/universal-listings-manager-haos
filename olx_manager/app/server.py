@@ -5,11 +5,12 @@ from contextlib import AsyncExitStack, ExitStack
 import uvicorn
 from starlette.responses import JSONResponse, PlainTextResponse
 
+from ha_llm_bridge import build_ha_llm_bridge
 from marketplace import OlxMarketplaceAdapter
-from mcp_service import build_mcp
+from mcp_service import build_mcp, build_tool_server
 from publication import PublicationService
 from security import SCOPE, McpAuth
-from settings import MCP_PORT, OLX_PORT, PANEL_PORT, Settings
+from settings import HA_LLM_PORT, MCP_PORT, OLX_PORT, PANEL_PORT, Settings
 from store import ListingStore
 from version import VERSION
 from web import SAFE, build_olx_public, build_web
@@ -29,6 +30,11 @@ class Service:
         self.mcp = (
             build_mcp(self.store, self.publication, self.olx, settings) if settings.mcp_enabled else None
         )
+
+        self.ha_llm = None
+        if settings.ha_llm_token:
+            registry = build_tool_server(self.store, self.publication, self.olx, settings, actor="ha_llm")
+            self.ha_llm = build_ha_llm_bridge(settings, registry)
 
     async def lifespan(self, receive, send):
         await receive()
@@ -53,6 +59,8 @@ class Service:
             return await self.panel(scope, receive, send)
         if port == OLX_PORT and self.settings.olx_public_base:
             return await self.olx_public(scope, receive, send)
+        if port == HA_LLM_PORT and self.ha_llm:
+            return await self.ha_llm(scope, receive, send)
         if port == MCP_PORT and self.mcp:
             return await self.handle_mcp(scope, receive, send)
         return await PlainTextResponse("404", 404, headers=SAFE)(scope, receive, send)
@@ -99,6 +107,8 @@ def main():
     ports = [PANEL_PORT]
     if settings.mcp_enabled:
         ports.append(MCP_PORT)
+    if settings.ha_llm_token:
+        ports.append(HA_LLM_PORT)
     if settings.olx_public_base:
         ports.append(OLX_PORT)
     host = "127.0.0.1" if settings.dev_panel else "0.0.0.0"

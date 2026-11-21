@@ -32,3 +32,6 @@ configuration:
     name: Potwierdzony brak kosztów tworzenia i aktualizacji
   olx_daily_limit:
     name: Dobowy limit prób zapisu do OLX
+  ha_llm_token:
+    name: Token integracji ULM w Home Assistant
+    description: Oddzielny losowy token base64url o długości co najmniej 32 znaków. Puste pole wyłącza połączenie.

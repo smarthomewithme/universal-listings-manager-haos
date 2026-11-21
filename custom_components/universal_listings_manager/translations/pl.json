@@ -1,0 +1,37 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Połącz z Universal Listings Manager",
+        "description": "Najpierw ustaw osobny token integracji w aplikacji ULM. Wybierz aktywne konto administratora używane przez istniejące połączenie MCP.",
+        "data": {
+          "host": "Wewnętrzna nazwa hosta aplikacji",
+          "token": "Token integracji ULM",
+          "ha_user_id": "Konto Home Assistant używane przez MCP"
+        }
+      },
+      "reconfigure": {
+        "title": "Zmień ustawienia Universal Listings Manager",
+        "description": "Wpisz bieżący lub nowy token integracji ULM.",
+        "data": {
+          "host": "Wewnętrzna nazwa hosta aplikacji",
+          "token": "Token integracji ULM",
+          "ha_user_id": "Konto Home Assistant używane przez MCP"
+        }
+      }
+    },
+    "error": {
+      "invalid_host": "Użyj wewnętrznej nazwy hosta aplikacji HA zakończonej na -olx-manager.",
+      "invalid_token": "Użyj osobnego tokenu ustawionego w aplikacji ULM.",
+      "invalid_user": "Wybierz aktywnego administratora Home Assistant.",
+      "invalid_auth": "ULM odmówił dostępu. Sprawdź token i sieć aplikacji.",
+      "incompatible": "Zaktualizuj aplikację ULM i ustaw token integracji.",
+      "cannot_connect": "Nie można połączyć się z ULM. Sprawdź wewnętrzną nazwę hosta i uruchom ponownie aplikację po zmianie tokenu."
+    },
+    "abort": {
+      "single_instance_allowed": "Integracja jest już skonfigurowana.",
+      "no_admin": "Brak uprawnionego administratora Home Assistant.",
+      "reconfigure_successful": "Ustawienia połączenia zostały zapisane."
+    }
+  }
+}

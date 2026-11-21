@@ -8,7 +8,8 @@ Installation becomes available once the release workflow has verified the publis
 
 - [Installation, backup and updates in Polish](olx_manager/DOCS.md)
 - [Changelog](olx_manager/CHANGELOG.md)
-- [ChatGPT and MCP setup in Polish](docs/CHATGPT_MCP_SETUP.md)
+- [Use ULM through the existing Home Assistant MCP with HACS](docs/HA_MCP_SETUP.md)
+- [Direct ULM MCP and ChatGPT setup in Polish](docs/CHATGPT_MCP_SETUP.md)
 - [OLX Partner API setup in Polish](docs/OLX_API_ACCESS.md)
 - [Release engineering](docs/GITHUB_RELEASE.md)
 

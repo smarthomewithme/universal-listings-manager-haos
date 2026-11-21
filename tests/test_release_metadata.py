@@ -23,7 +23,8 @@ class ReleaseMetadataTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             shutil.copytree(ROOT / "olx_manager", root / "olx_manager")
-            for name in ("README.md", "repository.yaml"):
+            shutil.copytree(ROOT / "custom_components", root / "custom_components")
+            for name in ("README.md", "repository.yaml", "hacs.json"):
                 shutil.copy(ROOT / name, root / name)
             version = validate(root)["version"]
             repo = "tester-xyz/fixture-haos"

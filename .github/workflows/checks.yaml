@@ -49,8 +49,8 @@ jobs:
           echo "publish=$decision" >> "$GITHUB_OUTPUT"
       - name: Lint and syntax
         run: |
-          ruff check olx_manager/app tests scripts
-          ruff format --check olx_manager/app tests scripts
+          ruff check olx_manager/app custom_components tests scripts
+          ruff format --check olx_manager/app custom_components tests scripts
           node --check olx_manager/app/static/app.js
           python -m compileall -q olx_manager/app tests
       - name: Unit, REST, MCP and browser tests
@@ -89,6 +89,8 @@ jobs:
             docker build --platform=linux/amd64 -t ulm:previous "$RUNNER_TEMP/ulm-previous/olx_manager"
           fi
           bash scripts/verify_container.sh ulm:candidate "$VERSION" ulm:previous "$PREVIOUS_VERSION"
+      - name: Test the Home Assistant Core MCP endpoint with ULM
+        run: bash scripts/verify_ha_mcp.sh ulm:candidate
       - name: Save the exact tested image for publication
         if: github.event_name == 'push' && steps.metadata.outputs.publish == 'publish'
         run: docker save ulm:candidate -o "$RUNNER_TEMP/ulm-candidate.tar"

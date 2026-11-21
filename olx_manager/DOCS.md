@@ -15,6 +15,12 @@ Przed aktualizacją zrób kopię zapasową aplikacji w **Ustawienia → System �
 
 Aplikacja z katalogu lokalnego i aplikacja z repozytorium GitHub to różne instalacje Supervisora, nawet przy tym samym slugu. Jeżeli v1.0 była już używana, zachowaj jej aplikację i kopię. Przeniesienie do innego ID wymaga kontrolowanej migracji danych. Jeśli aplikacji z ZIP-a nigdy nie zainstalowano, wykonaj świeżą instalację z GitHuba.
 
+## Istniejące połączenie MCP Home Assistant
+
+Wersja 1.2.0 pozwala dodać narzędzia ULM do istniejącego głównego MCP HA. Wymaga komponentu
+**Universal Listings Manager** instalowanego z tego samego repozytorium przez HACS oraz
+osobnego tokenu `ha_llm_token`. [Instrukcja integracji centralnej](https://github.com/smarthomewithme/universal-listings-manager-haos/blob/main/docs/HA_MCP_SETUP.md).
+
 ## ChatGPT i OLX
 
 - W scenariuszu podstawowym przygotuj opis w ChatGPT i użyj **Import z ChatGPT**. Oryginały zdjęć dodaj w panelu. Bezpośredni zapis wymaga skonfigurowanego, uwierzytelnionego MCP i uprawnień na koncie ChatGPT. Domyślnie MCP jest wyłączony.

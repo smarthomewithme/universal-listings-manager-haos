@@ -1,0 +1,127 @@
+name: Test and release HAOS app
+on:
+  push:
+    branches: [development]
+  pull_request:
+    branches: [development]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      version: ${{ steps.metadata.outputs.version }}
+      publish: ${{ steps.metadata.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install locked dependencies and test tooling
+        run: |
+          python -m pip install -r olx_manager/requirements.txt
+          python -m pip install ruff==0.17.6 pip-audit==2.10.1 playwright==1.62.0 PyYAML==6.0.3
+          python -m pip check
+      - name: Check version and previous release
+        id: metadata
+        run: |
+          set -euo pipefail
+          version="$(python scripts/release_metadata.py check)"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "previous=1.0.0" >> "$GITHUB_OUTPUT"
+          previous=()
+          if git cat-file -e origin/main:olx_manager/config.yaml 2>/dev/null; then
+            git show origin/main:olx_manager/config.yaml > "$RUNNER_TEMP/ulm-stable.yaml"
+            stable="$(python -c 'import sys,yaml; print(yaml.safe_load(open(sys.argv[1]))["version"])' "$RUNNER_TEMP/ulm-stable.yaml")"
+            printf 'previous=%s\n' "$stable" >> "$GITHUB_OUTPUT"
+            previous=("$stable")
+          fi
+          decision="$(python scripts/release_metadata.py decision "${previous[@]}")"
+          echo "publish=$decision" >> "$GITHUB_OUTPUT"
+      - name: Lint and syntax
+        run: |
+          ruff check olx_manager/app tests scripts
+          ruff format --check olx_manager/app tests scripts
+          node --check olx_manager/app/static/app.js
+          python -m compileall -q olx_manager/app tests
+      - name: Unit, REST, MCP and browser tests
+        run: |
+          python -m playwright install --with-deps --only-shell chromium
+          ULM_BROWSER_TEST=1 python -m unittest discover -s tests -v
+      - name: Dependency audit
+        run: pip-audit -r olx_manager/requirements.txt --no-deps --disable-pip
+      - name: Build linux amd64
+        env:
+          VERSION: ${{ steps.metadata.outputs.version }}
+        run: |
+          docker build --platform=linux/amd64             --label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"             --label "org.opencontainers.image.revision=$GITHUB_SHA"             --label "org.opencontainers.image.version=$VERSION"             -t ulm:candidate olx_manager
+          test "$(docker image inspect --format '{{.Os}}/{{.Architecture}}' ulm:candidate)" = linux/amd64
+      - name: Container smoke, restart and upgrade from previous version
+        env:
+          VERSION: ${{ steps.metadata.outputs.version }}
+          PREVIOUS_VERSION: ${{ steps.metadata.outputs.previous }}
+        run: |
+          set -euo pipefail
+          if [[ -f "$RUNNER_TEMP/ulm-stable.yaml" ]]; then
+            previous_image="$(python -c 'import sys,yaml; print(yaml.safe_load(open(sys.argv[1]))["image"])' "$RUNNER_TEMP/ulm-stable.yaml")"
+            docker pull --platform=linux/amd64 "$previous_image:$PREVIOUS_VERSION"
+            docker tag "$previous_image:$PREVIOUS_VERSION" ulm:previous
+          else
+            mkdir "$RUNNER_TEMP/ulm-previous"
+            baseline=origin/baseline-v1.0.0
+            if ! git cat-file -e "$baseline^{commit}" 2>/dev/null; then baseline=v1.0.0; fi
+            git archive "$baseline" olx_manager | tar xf - -C "$RUNNER_TEMP/ulm-previous"
+            docker build --platform=linux/amd64 -t ulm:previous "$RUNNER_TEMP/ulm-previous/olx_manager"
+          fi
+          bash scripts/verify_container.sh ulm:candidate "$VERSION" ulm:previous "$PREVIOUS_VERSION"
+      - name: Save the exact tested image for publication
+        if: github.event_name == 'push' && steps.metadata.outputs.publish == 'publish'
+        run: docker save ulm:candidate -o "$RUNNER_TEMP/ulm-candidate.tar"
+      - name: Transfer tested image
+        if: github.event_name == 'push' && steps.metadata.outputs.publish == 'publish'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ulm-amd64
+          path: ${{ runner.temp }}/ulm-candidate.tar
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/development' && needs.checks.outputs.publish == 'publish'
+    needs: checks
+    concurrency:
+      group: ulm-stable-release
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      packages: write
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      VERSION: ${{ needs.checks.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install PyYAML==6.0.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: ulm-amd64
+          path: ${{ runner.temp }}
+      - name: Publish, verify anonymous pull and promote to main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/publish_ha_release.sh

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#143b2d">
+  <title>Ogłoszenia · Universal Listings Manager</title>
+  <link rel="icon" href="static/icon.svg">
+  <link rel="stylesheet" href="static/app.css">
+  <script src="static/app.js" defer></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="#all"><span class="brand-icon"><img src="static/icon.svg" alt=""></span><span><strong>Ogłoszenia</strong><small>Universal Listings Manager</small></span></a>
+    <nav id="navigation" aria-label="Ogłoszenia">
+      <a href="#all" data-nav="all">Pulpit</a>
+      <a href="#draft" data-nav="draft">Szkice</a>
+      <a href="#ready_for_review" data-nav="ready_for_review">Do zatwierdzenia</a>
+      <a href="#published" data-nav="published">Aktywne</a>
+      <a href="#sold" data-nav="sold">Sprzedane</a>
+      <a href="#archived" data-nav="archived">Archiwum</a>
+      <a href="#history" data-nav="history">Historia</a>
+      <a href="#settings" data-nav="settings">Integracje</a>
+    </nav>
+  </aside>
+  <main class="workspace">
+    <div id="notice" role="status" class="notice" hidden></div>
+    <div id="screen"><div class="card">Ładowanie panelu…</div></div>
+  </main>
+  <noscript>Włącz JavaScript, aby korzystać z panelu Ogłoszenia.</noscript>
+</body>
+</html>

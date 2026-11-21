@@ -63,8 +63,14 @@ jobs:
         env:
           VERSION: ${{ steps.metadata.outputs.version }}
         run: |
-          docker build --platform=linux/amd64             --label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"             --label "org.opencontainers.image.revision=$GITHUB_SHA"             --label "org.opencontainers.image.version=$VERSION"             -t ulm:candidate olx_manager
+          docker build --platform=linux/amd64 \
+            --build-arg "BUILD_VERSION=$VERSION" \
+            --label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+            --label "org.opencontainers.image.version=$VERSION" \
+            -t ulm:candidate olx_manager
           test "$(docker image inspect --format '{{.Os}}/{{.Architecture}}' ulm:candidate)" = linux/amd64
+          test "$(docker image inspect --format '{{ index .Config.Labels "io.hass.version" }}' ulm:candidate)" = "$VERSION"
       - name: Container smoke, restart and upgrade from previous version
         env:
           VERSION: ${{ steps.metadata.outputs.version }}

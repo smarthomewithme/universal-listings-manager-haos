@@ -52,14 +52,25 @@ inspect_label() {
   docker image inspect --format "{{ index .Config.Labels \"$2\" }}" "$1"
 }
 
+assert_label() {
+  if [[ "$(inspect_label "$1" "$2")" != "$3" ]]; then
+    echo "Image $1 has an unexpected $2 label." >&2
+    return 1
+  fi
+}
+
 assert_identity() {
-  [[ "$(docker image inspect --format '{{.Os}}/{{.Architecture}}' "$1")" == linux/amd64 ]]
-  [[ "$(inspect_label "$1" org.opencontainers.image.revision)" == "$GITHUB_SHA" ]]
-  [[ "$(inspect_label "$1" io.hass.version)" == "$VERSION" ]]
-  [[ "$(inspect_label "$1" io.hass.arch)" == amd64 ]]
-  [[ "$(inspect_label "$1" io.hass.type)" == app ]]
-  [[ "$(inspect_label "$1" org.opencontainers.image.version)" == "$VERSION" ]]
-  [[ "$(inspect_label "$1" org.opencontainers.image.source)" == "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" ]]
+  local ref="$1"
+  if [[ "$(docker image inspect --format '{{.Os}}/{{.Architecture}}' "$ref")" != linux/amd64 ]]; then
+    echo "Image $ref is not linux/amd64." >&2
+    return 1
+  fi
+  assert_label "$ref" org.opencontainers.image.revision "$GITHUB_SHA" &&
+    assert_label "$ref" io.hass.version "$VERSION" &&
+    assert_label "$ref" io.hass.arch amd64 &&
+    assert_label "$ref" io.hass.type app &&
+    assert_label "$ref" org.opencontainers.image.version "$VERSION" &&
+    assert_label "$ref" org.opencontainers.image.source "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
 }
 
 assert_identity ulm:candidate

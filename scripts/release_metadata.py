@@ -1,6 +1,7 @@
 """Validate the source tree and render metadata for Home Assistant's stable branch."""
 
 import argparse
+import json
 import re
 from pathlib import Path
 from urllib.parse import urlencode
@@ -46,6 +47,17 @@ def validate(root):
         if not (app / filename).is_file():
             raise ValueError(f"Brak pliku {filename}.")
     notes(app / "CHANGELOG.md", version)
+    component = root / "custom_components/universal_listings_manager/manifest.json"
+    if component.is_file() or (root / "hacs.json").exists():
+        manifest = json.loads(component.read_text())
+        hacs = json.loads((root / "hacs.json").read_text())
+        if (
+            manifest["domain"] != "universal_listings_manager"
+            or manifest["version"] != version
+            or manifest["config_flow"] is not True
+            or not hacs["homeassistant"]
+        ):
+            raise ValueError("The HACS manifest must match the app release version and declare UI setup.")
     return config
 
 
@@ -96,10 +108,10 @@ def render(root, repository, sha, digest):
         raise ValueError("README wymaga jednego miejsca na przycisk HA.")
     doc_path.write_text(contents)
     (root / "RELEASE_IMAGE.md").write_text(
-        f"# Obraz aplikacji {config['version']}\n\n"
-        f"- Obraz amd64: `{image}:{config['version']}`\n"
+        f"# Container image {config['version']}\n\n"
+        f"- amd64 image: `{image}:{config['version']}`\n"
         f"- Digest: `{digest}`\n"
-        f"- Commit źródłowy: `{sha}`\n"
+        f"- Source commit: `{sha}`\n"
     )
     if validate(root)["image"] != image:
         raise ValueError("Wygenerowany config.yaml nie zawiera adresu obrazu.")

@@ -1,0 +1,37 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to Universal Listings Manager",
+        "description": "Set a separate integration token in the ULM app first. Select the active Home Assistant administrator account used by your existing MCP connection.",
+        "data": {
+          "host": "Internal app hostname",
+          "token": "ULM integration token",
+          "ha_user_id": "Home Assistant MCP account"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure Universal Listings Manager",
+        "description": "Enter the current or rotated ULM integration token.",
+        "data": {
+          "host": "Internal app hostname",
+          "token": "ULM integration token",
+          "ha_user_id": "Home Assistant MCP account"
+        }
+      }
+    },
+    "error": {
+      "invalid_host": "Use the internal Home Assistant app hostname ending in -olx-manager.",
+      "invalid_token": "Use the separate token configured in the ULM app.",
+      "invalid_user": "Select an active Home Assistant administrator.",
+      "invalid_auth": "ULM refused access. Check the token and the app network.",
+      "incompatible": "Update the ULM app and enable the integration token.",
+      "cannot_connect": "Could not reach ULM. Check its internal hostname and restart the app after changing the token."
+    },
+    "abort": {
+      "single_instance_allowed": "This integration is already configured.",
+      "no_admin": "No eligible Home Assistant administrator exists.",
+      "reconfigure_successful": "The integration connection has been updated."
+    }
+  }
+}

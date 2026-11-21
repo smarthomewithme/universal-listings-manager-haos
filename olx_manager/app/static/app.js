@@ -253,7 +253,7 @@ function historyCard(history) {
   return card(el("h2", {}, "Historia"), history.length ? el("ol",{class:"history"},
     history.map(event => el("li",{},date(event.happened_at) + " · " + (audit[event.event] || event.event) +
       (event.revision ? " · wersja " + event.revision : "") + " · " +
-      (event.actor.startsWith("owner:") ? "Właściciel" : event.actor === "mcp" ? "MCP" : "System"),
+      (event.actor.startsWith("owner:") ? "Właściciel" : event.actor === "mcp" ? "MCP" : event.actor === "ha_llm" ? "MCP Home Assistant" : "System"),
       event.draft_id ? [" · ",el("a",{href:"#edit/" + event.draft_id},event.title)] : null))) : p("Brak wpisów."));
 }
 

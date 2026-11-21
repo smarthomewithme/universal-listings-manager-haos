@@ -1,0 +1,13 @@
+{
+  "domain": "universal_listings_manager",
+  "name": "Universal Listings Manager",
+  "codeowners": ["@smarthomewithme"],
+  "config_flow": true,
+  "dependencies": ["llm"],
+  "documentation": "https://github.com/smarthomewithme/universal-listings-manager-haos/blob/main/docs/HA_MCP_SETUP.md",
+  "integration_type": "service",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/smarthomewithme/universal-listings-manager-haos/issues",
+  "single_config_entry": true,
+  "version": "1.2.0"
+}

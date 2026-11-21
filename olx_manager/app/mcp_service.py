@@ -12,7 +12,7 @@ from security import SCOPE
 from version import VERSION
 
 
-def build_mcp(store, publication, olx, settings):
+def build_tool_server(store, publication, olx, settings, actor="mcp"):
     server = MCPServer(
         "Universal Listings Manager",
         version=VERSION,
@@ -24,7 +24,6 @@ def build_mcp(store, publication, olx, settings):
             "Never label a mock or submitted advert as live. Monetary values use integer grosze."
         ),
     )
-    actor = "mcp"
 
     def tool(*, read=False, destructive=False, idem=False):
         def decorate(function):
@@ -241,7 +240,11 @@ def build_mcp(store, publication, olx, settings):
         """Save an evidence-based price estimate without changing the asking price."""
         return store.set_suggestion(draft_id, expected_revision, suggestion, actor)
 
-    return server.streamable_http_app(
+    return server
+
+
+def build_mcp(store, publication, olx, settings):
+    return build_tool_server(store, publication, olx, settings).streamable_http_app(
         stateless_http=True,
         json_response=True,
         max_request_body_size=256 * 1024,

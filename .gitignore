@@ -1,0 +1,10 @@
+.venv/
+.env
+__pycache__/
+*.pyc
+.ruff_cache/
+dev-data/
+dev-inbox/
+*.sqlite3*
+*.key
+dist/

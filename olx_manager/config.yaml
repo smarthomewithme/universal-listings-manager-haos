@@ -1,0 +1,48 @@
+name: "Universal Listings Manager"
+description: "Prywatny panel sprzedaży, albumy zdjęć, zatwierdzanie i MCP"
+version: "1.1.0"
+slug: "olx_manager"
+arch:
+  - amd64
+init: true
+startup: application
+boot: auto
+ingress: true
+ingress_port: 8099
+ingress_stream: true
+panel_title: "Ogłoszenia"
+panel_icon: "mdi:tag-multiple-outline"
+panel_admin: true
+watchdog: "http://[HOST]:[PORT:8099]/health"
+map:
+  - type: share
+    read_only: true
+options:
+  owner_user_id: ""
+  mcp_enabled: false
+  mcp_bearer_token: ""
+  mcp_resource_url: ""
+  mcp_issuer: ""
+  mcp_jwks_url: ""
+  mcp_subject: ""
+  mock_enabled: true
+  olx_public_base: ""
+  olx_write_enabled: false
+  olx_allowed_categories: ""
+  olx_no_charge_confirmed: false
+  olx_daily_limit: 3
+schema:
+  owner_user_id: str
+  mcp_enabled: bool
+  mcp_bearer_token: password
+  mcp_resource_url: str
+  mcp_issuer: str
+  mcp_jwks_url: str
+  mcp_subject: str
+  mock_enabled: bool
+  olx_public_base: str
+  olx_write_enabled: bool
+  olx_allowed_categories: str
+  olx_no_charge_confirmed: bool
+  olx_daily_limit: int(1,10)
+image: "ghcr.io/smarthomewithme/universal-listings-manager-haos"

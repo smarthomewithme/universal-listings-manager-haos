@@ -57,7 +57,11 @@ class HALLMBridgeTests(unittest.TestCase):
         return response.json()["result"]
 
     def test_private_authorization_and_allowed_tools(self):
-        self.assertEqual(set(self.bridge.get(API_PATH).json()["tools"]), SAFE_TOOLS)
+        self.assertEqual(
+            set(self.bridge.get(API_PATH).json()["tools"]),
+            SAFE_TOOLS
+            | {"prepare_photo_upload", "upload_photo_chunk", "finish_photo_upload", "cancel_photo_upload"},
+        )
         self.assertEqual(
             self.bridge.get(API_PATH, headers={"origin": "https://test.invalid"}).status_code, 401
         )

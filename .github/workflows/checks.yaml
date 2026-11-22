@@ -1,7 +1,7 @@
 name: Test and release HAOS app
 on:
   push:
-    branches: [development]
+    branches: [development, photo-bridge-v1.3]
   pull_request:
     branches: [development]
 

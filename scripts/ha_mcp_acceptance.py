@@ -1,7 +1,10 @@
 """Exercise the official HA Core MCP server against an isolated ULM app."""
 
+import base64
+import io
 import json
 import os
+import random
 import secrets
 import subprocess
 import sys
@@ -10,9 +13,14 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+from photo_bridge_client import photo_request, upload_packets
+from PIL import Image
+
 DOMAIN = "universal_listings_manager"
 HEADERS = {"Content-Type": "application/json", "Accept": "application/json"}
-CORE_URL, CORE_CONTAINER, NETWORK, IMAGE = sys.argv[1:] if __name__ == "__main__" else (None,) * 4
+CORE_URL, CORE_CONTAINER, NETWORK, IMAGE, APP_CONTAINER = (
+    sys.argv[1:] if __name__ == "__main__" else (None,) * 5
+)
 TOKEN = ""
 
 
@@ -188,6 +196,83 @@ print(json.dumps({"revision":result["revision"],"status":result["status"]}))
     return json.loads(docker_exec(*args, input_text=code))
 
 
+def fixture_photo(kind, seed):
+    rng = random.Random(seed)
+    with Image.frombytes("RGB", (400, 300), rng.randbytes(400 * 300 * 3)) as image:
+        with io.BytesIO() as output:
+            image.save(output, format=kind)
+            return output.getvalue()
+
+
+def restart_app():
+    docker_exec("docker", "restart", APP_CONTAINER)
+    for _ in range(40):
+        status = subprocess.run(
+            ["docker", "inspect", "--format", "{{.State.Health.Status}}", APP_CONTAINER],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        if status == "healthy":
+            return
+        time.sleep(2)
+    raise RuntimeError("The ULM app did not become healthy after restart.")
+
+
+def verify_photos(draft, originals):
+    before = tool("get_draft", draft_id=draft["id"])
+    before_status = tool("get_publication_status", draft_id=draft["id"])
+    expected = before["revision"]
+    hashes = []
+    for i, (filename, mime, raw) in enumerate(originals):
+        params = photo_request(
+            raw, draft["id"], expected, filename, mime, f"core-photo-fixture-{i}", primary=i == 1
+        )
+        session = tool("prepare_photo_upload", **params)
+        args = {"session_id": session["session_id"]}
+        assert "UPLOAD_INCOMPLETE" in tool("finish_photo_upload", **args, error=True)
+        first = next(upload_packets(session, raw))
+        sent = tool("upload_photo_chunk", **first)
+        assert tool("upload_photo_chunk", **first) == sent
+        if i == 0:
+            restart_app()
+        session = tool("prepare_photo_upload", **params)
+        assert session["offset"] == sent["offset"]
+        for packet in upload_packets(session, raw):
+            tool("upload_photo_chunk", **packet)
+        saved = tool("finish_photo_upload", **args)
+        assert tool("finish_photo_upload", **args) == saved
+        assert saved["photo_id"] == params["sha256"]
+        assert saved["revision"] == expected + 1
+        expected = saved["revision"]
+        hashes.append(params["sha256"])
+    restart_app()
+    current = tool("get_draft", draft_id=draft["id"])
+    assert current["revision"] == expected and current["fields"] == before["fields"]
+    assert [photo["id"] for photo in current["media"]] == hashes[::-1]
+    assert tool("get_publication_status", draft_id=draft["id"])["olx"] == before_status["olx"]
+    for (filename, _, _), checksum in zip(originals, hashes, strict=True):
+        thumb = tool("get_image", draft_id=draft["id"], photo_id=checksum)
+        with Image.open(io.BytesIO(base64.b64decode(thumb["data"]))) as image:
+            assert image.format == "JPEG" and image.width == 256
+        result = docker_exec(
+            "docker",
+            "exec",
+            APP_CONTAINER,
+            "python",
+            "-c",
+            "import hashlib, sqlite3, sys; "
+            "db=sqlite3.connect('/data/listings.sqlite3'); "
+            "row=db.execute('SELECT original,filename FROM media_assets JOIN draft_media "
+            "ON asset_id=id WHERE draft_id=? AND asset_id=?',sys.argv[1:]).fetchone(); "
+            "print(hashlib.sha256(row[0]).hexdigest(),row[1])",
+            draft["id"],
+            checksum,
+        ).strip()
+        assert result == f"{checksum} {filename}"
+    return current
+
+
 def main():
     admin_id = setup_admin()
     ulm = add_integration(
@@ -218,11 +303,13 @@ def main():
     assert "ulm_create_draft" not in tools and "ulm_get_draft" in tools
     assert all(item["annotations"]["readOnlyHint"] for item in ulm_tools.values())
     assert "create_draft" in tool("create_draft", error=True)
+    assert "prepare_photo_upload" not in tools
+    assert "upload_photo_chunk" in tool("upload_photo_chunk", error=True)
     print("PASS: official HA MCP read-only filters listings and rejects writes", flush=True)
 
     set_read_only(mcp, False)
     tools = listed()
-    assert len([name for name in tools if name.startswith("ulm_")]) == 14
+    assert len([name for name in tools if name.startswith("ulm_")]) == 18
     assert any(not name.startswith("ulm_") for name in tools)
     assert "ulm_approve" not in tools and "ulm_publish_approved" not in tools
 
@@ -234,9 +321,18 @@ def main():
         "location": "Olsztyn",
         "price_minor": 15500,
     }
-    params = {"request_id": "ha-mcp-fixture", "fields": fields}
+    params = {
+        "request_id": "ha-mcp-fixture",
+        "fields": fields,
+        "suggestion": {
+            "price_minor": 15500,
+            "confidence": "low",
+            "notes": "Estimate without comparable listings",
+        },
+    }
     created = tool("create_draft", **params)
     assert tool("create_draft", **params)["id"] == created["id"]
+    assert created["price_suggestion"]["confidence"] == "low"
     assert len(tool("list_drafts")["items"]) == 1
     draft_id = created["id"]
     args = {"draft_id": draft_id}
@@ -246,10 +342,14 @@ def main():
     assert "REVISION_CONFLICT" in tool(
         "update_price", error=True, **args, expected_revision=loaded["revision"], price_minor=999
     )
-    uploaded = ingress_fixture(draft_id, updated["revision"], "photo")
-    image = tool("list_media", **args)["items"][0]
-    thumb = tool("get_image", **args, photo_id=image["id"])
-    assert thumb["width"] == 256 and thumb["mime_type"] == "image/jpeg"
+    uploaded = verify_photos(
+        updated,
+        [
+            ("first.jpg", "image/jpeg", fixture_photo("JPEG", 17)),
+            ("cover.png", "image/png", fixture_photo("PNG", 32)),
+        ],
+    )
+    print("PASS: two exact originals through official HA MCP, mid-upload restart, thumbnails and cover")
     queued = tool("request_review", **args, expected_revision=uploaded["revision"])
     assert tool("get_approval_status", **args)["status"] == "ready_for_review"
     tool("simulate_publication", error=True, **args, expected_revision=queued["revision"])

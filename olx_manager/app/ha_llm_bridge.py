@@ -15,6 +15,7 @@ from starlette.routing import Route
 
 from media import DomainError
 from models import Model
+from photo_upload import PreparePhoto, UploadChunk, UploadSession
 from security import equal
 from version import VERSION
 from web import SAFE, error_response, form, validation_error
@@ -104,7 +105,15 @@ def _run(registry, name, args):
     return values[0]
 
 
-def build_ha_llm_bridge(settings, registry):
+def build_ha_llm_bridge(settings, registry, photos):
+    uploads = {
+        "prepare_photo_upload": (PreparePhoto, photos.prepare),
+        "upload_photo_chunk": (UploadChunk, photos.chunk),
+        "finish_photo_upload": (UploadSession, photos.finish),
+        "cancel_photo_upload": (UploadSession, photos.cancel),
+    }
+    finish_limiter = anyio.CapacityLimiter(2)
+
     def require_access(request):
         client = request.client
         if client is None:
@@ -123,11 +132,20 @@ def build_ha_llm_bridge(settings, registry):
 
     async def status(request):
         require_access(request)
-        return _response({"protocol": 1, "version": VERSION, "tools": sorted(SAFE_TOOLS)})
+        return _response({"protocol": 1, "version": VERSION, "tools": sorted(SAFE_TOOLS | uploads.keys())})
 
     async def execute(request):
         require_access(request)
         name = request.path_params["name"]
+        if name in uploads:
+            model, handler = uploads[name]
+            data = await form(request, ToolCall)
+            result = await anyio.to_thread.run_sync(
+                handler,
+                model.model_validate(data.arguments),
+                limiter=finish_limiter if name == "finish_photo_upload" else None,
+            )
+            return _response({"result": result})
         if name not in SAFE_TOOLS:
             raise DomainError("TOOL_NOT_ALLOWED", "The tool is not exposed to Home Assistant.", 404)
         data = await form(request, ToolCall)

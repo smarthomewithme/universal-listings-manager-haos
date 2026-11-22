@@ -207,6 +207,25 @@ TOOL_SPECS = (
         idempotent=False,
     ),
     ToolSpec(
+        "list_backend_tools",
+        "Read all available private ULM capabilities, including new capabilities added by an app update. "
+        "Each item contains a name, description, input schema and read-only flag.",
+        {},
+    ),
+    ToolSpec(
+        "call_backend_tool",
+        "Invoke an available ULM backend capability by its name with structured arguments. "
+        "First use ulm_list_backend_tools to inspect the current schema. "
+        "Only the explicitly allowlisted private ULM tools can execute; never publishes to live OLX.",
+        {
+            probatio.Required("name"): probatio.Match(r"^[a-z_]{1,40}$"),
+            probatio.Required("arguments"): dict,
+        },
+        read_only=False,
+        destructive=True,
+        idempotent=False,
+    ),
+    ToolSpec(
         "get_review_preview", "Read the preview and any fields that are missing before approval.", ARG_DRAFT
     ),
     ToolSpec(
@@ -230,7 +249,11 @@ TOOL_SPECS = (
     ),
     ToolSpec("get_activity_log", "Read recent activity for a draft, including edits and reviews.", ARG_DRAFT),
 )
-TOOL_NAMES = frozenset(spec.name for spec in TOOL_SPECS if spec.name != "attach_chat_photos")
+TOOL_NAMES = frozenset(
+    spec.name
+    for spec in TOOL_SPECS
+    if spec.name not in {"attach_chat_photos", "list_backend_tools", "call_backend_tool"}
+)
 
 
 async def authorized_user(hass, context, allowed_user):
@@ -265,7 +288,15 @@ class ULMTool(llm.Tool):
             return llm.ToolResult(data={"code": "UNAUTHORIZED"}, error=True)
         try:
             arguments = self.parameters(tool_input.tool_args)
-            if self._target == "attach_chat_photos":
+            if self._target == "list_backend_tools":
+                result = await self._client.catalog()
+            elif self._target == "call_backend_tool":
+                if arguments["name"] in {
+                    "publish_approved", "refresh_publication", "delete_draft", "listings_approve"
+                }:
+                    raise BridgeError("TOOL_NOT_ALLOWED", "ULM does not expose this operation.")
+                result = await self._client.call(arguments["name"], arguments["arguments"])
+            elif self._target == "attach_chat_photos":
                 from .chat_photo import attach_chat_photos
 
                 result = await attach_chat_photos(self._client, arguments)

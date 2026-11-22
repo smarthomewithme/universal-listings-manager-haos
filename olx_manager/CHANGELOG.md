@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.5.0
+
+- Add a version-aware ULM integration sync. The HA integration only uses the official
+  Marketplace update.install action when an exact stable release matches the running
+  ULM app and the repository release URL. No extra Supervisor privileges, public
+  ports, local file writes, or automatic HA Core restarts are introduced.
+- Add a stable, allowlisted generic ULM tool gateway: ulm_list_backend_tools exposes
+  backend tool descriptions and JSON schemas, and ulm_call_backend_tool invokes
+  newly supported app capabilities without another HA integration code change.
+  Dangerous direct live-OLX publication and deletion operations remain blocked.
+- Keep all existing 19 ULM tools and ChatGPT photo attachment handling unchanged.
+- Add CI tests for the private capability catalog, HA Core MCP dispatch, and strict
+  integration-update version policies.
+
+
 ## 1.4.0
 
 - Add ChatGPT-native file attachment input to the existing central Home Assistant MCP

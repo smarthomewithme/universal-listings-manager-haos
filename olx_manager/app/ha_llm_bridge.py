@@ -134,6 +134,41 @@ def build_ha_llm_bridge(settings, registry, photos):
         require_access(request)
         return _response({"protocol": 1, "version": VERSION, "tools": sorted(SAFE_TOOLS | uploads.keys())})
 
+    async def catalog(request):
+        """Expose descriptions of explicitly allowlisted tools to the stable HA bridge."""
+        require_access(request)
+        available = []
+        for tool in await registry.list_tools():
+            if tool.name not in SAFE_TOOLS:
+                continue
+            schema = tool.input_schema
+            if not isinstance(schema, dict):
+                raise DomainError("INVALID_RESPONSE", "Invalid tool schema.", 502)
+            available.append(
+                {
+                    "name": tool.name,
+                    "description": tool.description or "",
+                    "read_only": bool(tool.annotations and tool.annotations.read_only_hint),
+                    "input_schema": schema,
+                }
+            )
+        available.append(
+            {
+                "name": "simulate_publication",
+                "description": "Simulate owner-approved publication only; no live OLX action.",
+                "read_only": False,
+                "input_schema": {
+                    "type": "object",
+                    "properties": {
+                        "draft_id": {"type": "string"},
+                        "expected_revision": {"type": "integer", "minimum": 1},
+                    },
+                    "required": ["draft_id", "expected_revision"],
+                },
+            }
+        )
+        return _response({"version": VERSION, "items": sorted(available, key=lambda item: item["name"])})
+
     async def execute(request):
         require_access(request)
         name = request.path_params["name"]
@@ -163,6 +198,10 @@ def build_ha_llm_bridge(settings, registry, photos):
     from pydantic import ValidationError
 
     return Starlette(
-        routes=[Route(API_PATH, status), Route(API_PATH + "/{name}", execute, methods=["POST"])],
+        routes=[
+            Route(API_PATH, status),
+            Route(API_PATH + "/catalog", catalog, methods=["GET"]),
+            Route(API_PATH + "/{name}", execute, methods=["POST"]),
+        ],
         exception_handlers={DomainError: domain_error, ValidationError: validation_error},
     )

@@ -98,6 +98,24 @@ class BridgeClient:
             raise BridgeError("INCOMPATIBLE", "Update the ULM app and the integration to matching versions.")
         return BridgeStatus(version, frozenset(tools))
 
+    async def catalog(self):
+        """Read bounded, authenticated capabilities without exposing new public routes."""
+        data = await self._request("GET", "/catalog")
+        if not isinstance(data.get("items"), list) or len(data["items"]) > 100:
+            raise BridgeError("INVALID_RESPONSE", "Invalid ULM capability catalog.")
+        items = data["items"]
+        if not all(
+            isinstance(item, dict)
+            and isinstance(item.get("name"), str)
+            and re.fullmatch(r"[a-z_]{1,40}", item["name"])
+            and isinstance(item.get("description"), str)
+            and isinstance(item.get("read_only"), bool)
+            and isinstance(item.get("input_schema"), dict)
+            for item in items
+        ):
+            raise BridgeError("INVALID_RESPONSE", "Invalid ULM capability catalog.")
+        return {"version": data.get("version"), "items": items}
+
     async def call(self, tool, arguments):
         """Send a tool call without automatic retries or redirects."""
         if not re.fullmatch(r"[a-z_]{1,40}", tool):

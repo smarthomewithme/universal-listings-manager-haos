@@ -72,3 +72,42 @@ With Read-only enabled, confirm `ulm_create_draft` is absent. With writes enable
 disposable draft, edit its price, upload a photo in the panel and request review. Verify that
 a simulation before approval fails, then approve in the owner panel and simulate it.
 Check the local result is `mock_published` and the real OLX state is unchanged.
+
+
+## Unified updates from 1.5.0
+
+Starting with the 1.5.0 companion integration, updating the HAOS ULM app also
+triggers a **conservative automatic Marketplace integration update**, but only
+after the Marketplace independently discovers an official stable GitHub release
+whose version exactly matches the running ULM app.
+
+The running HA integration uses its own official Home Assistant `update.install`
+action to update **only** the ULM Marketplace entity. It does not download code
+by itself, alter `/config`, ask for a Supervisor admin API token, install other
+integrations, or automatically restart Home Assistant. The Marketplace still
+requests a Core restart when updated Python files must be loaded.
+
+The integration checks approximately every 15 minutes after the running app
+becomes reachable; Marketplace catalog refreshes can take longer. It validates
+the precise repository release URL and stable semantic version, refuses a
+prerelease, ignores other Marketplace integrations, and rate-limits retries.
+
+This release is a one-time bootstrap: the 1.5.0 companion integration must be
+installed once to enable self-synchronization. From then on, the normal HAOS app
+update is the only installation action required; the Marketplace update can
+follow automatically, subject to its availability and restart requirements.
+
+For future app-only capabilities, the integration also exposes:
+
+- `ulm_list_backend_tools`: catalog of private, allowlisted backend operations,
+  including each argument schema.
+- `ulm_call_backend_tool`: invoke an allowlisted operation described by the
+  catalog, without changing the HA Core integration's static tool registry.
+
+This generic gateway cannot call direct live OLX publication, delete operations
+or non-allowlisted backend functions. The existing dedicated tools remain the
+preferred interface for common tasks such as creating drafts and attaching
+ChatGPT photos.
+
+The generic gateway is a compatibility fallback for future backend additions,
+not permission to run arbitrary Home Assistant actions.

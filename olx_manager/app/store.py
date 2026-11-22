@@ -8,7 +8,7 @@ from pathlib import Path
 from media import MAX_IMAGES, ConflictError, DomainError, decode, read_from, sha256
 from models import DraftFields
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 APPROVAL_TTL = 24 * 3600
 MEDIA_QUOTA = 1024 * 1024 * 1024
 EDITABLE = {"draft", "ready_for_review", "approved", "rejected", "failed"}
@@ -63,7 +63,7 @@ class ListingStore:
             version = db.execute("PRAGMA user_version").fetchone()[0]
             if version == SCHEMA_VERSION:
                 return
-            if version != 0:
+            if version not in (0, 1):
                 raise RuntimeError("Baza zapisana przez nowszą wersję aplikacji.")
             for statement in Path(__file__).with_name("schema.sql").read_text().split(";"):
                 if statement.strip():
@@ -71,7 +71,7 @@ class ListingStore:
             exists = db.execute(
                 "SELECT 1 FROM sqlite_master WHERE type='table' AND name='listings'"
             ).fetchone()
-            if exists:
+            if version == 0 and exists:
                 self._migrate_legacy(db)
             db.execute(f"PRAGMA user_version={SCHEMA_VERSION}")
 
@@ -333,12 +333,18 @@ class ListingStore:
 
     def upload(self, draft_id, revision, image, filename, actor):
         with self.connect(write=True) as db:
-            draft = self._check(db, draft_id, revision)
-            if len(draft["media"]) >= MAX_IMAGES:
-                raise DomainError("IMAGE_COUNT", "Limit 20 zdjęć na ogłoszenie.", 413)
-            position = max((p["position"] for p in draft["media"]), default=-1) + 1
-            self._attach(db, draft_id, image, filename, position)
-            return self._change(db, draft, actor, "media_attached")
+            return self._upload(db, draft_id, revision, image, filename, actor)
+
+    def _upload(self, db, draft_id, revision, image, filename, actor, *, primary=False):
+        draft = self._check(db, draft_id, revision)
+        if len(draft["media"]) >= MAX_IMAGES:
+            raise DomainError("IMAGE_COUNT", "Limit 20 zdjęć na ogłoszenie.", 413)
+        position = max((p["position"] for p in draft["media"]), default=-1) + 1
+        if primary:
+            db.execute("UPDATE draft_media SET position=position+1 WHERE draft_id=?", (draft_id,))
+            position = 0
+        self._attach(db, draft_id, image, filename, position)
+        return self._change(db, draft, actor, "media_attached")
 
     def attach_inbox(self, draft_id, revision, inbox, filename, actor):
         if not 1 <= len(filename) <= 200:

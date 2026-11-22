@@ -27,6 +27,9 @@ STATUSES = (
 DRAFT_ID = probatio.All(str, probatio.Length(min=1, max=80))
 PHOTO_ID = probatio.Match(r"^[0-9a-f]{64}$")
 REV = probatio.All(int, probatio.Range(min=1))
+MAX_PHOTO_BYTES = 12 * 1024 * 1024
+MAX_ENCRYPTED_CHUNK = 65616
+SESSION = {probatio.Required("session_id"): probatio.Match(r"^[0-9a-f-]{36}$")}
 PRICE = probatio.All(int, probatio.Range(min=0, max=10_000_000_000))
 SHORT = probatio.All(str, probatio.Length(max=200))
 ARG_DRAFT = {probatio.Required("draft_id"): DRAFT_ID}
@@ -80,6 +83,16 @@ TOOL_SPECS = (
             probatio.Required("request_id"): probatio.Match(r"^[\w.-]{8,80}$"),
             probatio.Required("fields"): {probatio.Required("title"): SHORT, **FIELDS},
             probatio.Optional("product_id"): DRAFT_ID,
+            probatio.Optional("suggestion"): {
+                probatio.Required("price_minor"): PRICE,
+                probatio.Optional("min_minor"): PRICE,
+                probatio.Optional("max_minor"): PRICE,
+                probatio.Optional("confidence"): probatio.In(("low", "medium", "high")),
+                probatio.Optional("sources"): probatio.All(
+                    [probatio.All(str, probatio.Length(max=1000))], probatio.Length(max=10)
+                ),
+                probatio.Optional("notes"): probatio.All(str, probatio.Length(max=2000)),
+            },
         },
         read_only=False,
     ),
@@ -124,6 +137,48 @@ TOOL_SPECS = (
         read_only=False,
         destructive=True,
         idempotent=False,
+    ),
+    ToolSpec(
+        "prepare_photo_upload",
+        "Open or resume a private upload for a real source file. Only call with bytes available "
+        "to a file-capable client. Use the exact source SHA-256, a stable unique request ID and draft revision.",
+        {
+            **ARG_REVISION,
+            probatio.Required("request_id"): probatio.Match(r"^[\w.-]{8,80}$"),
+            probatio.Required("filename"): probatio.All(str, probatio.Length(min=1, max=200)),
+            probatio.Required("mime_type"): probatio.In(("image/jpeg", "image/png", "image/webp")),
+            probatio.Required("size_bytes"): probatio.All(int, probatio.Range(min=1, max=MAX_PHOTO_BYTES)),
+            probatio.Required("sha256"): PHOTO_ID,
+            probatio.Optional("primary"): bool,
+        },
+        read_only=False,
+    ),
+    ToolSpec(
+        "upload_photo_chunk",
+        "Send one encrypted chunk using the ULM upload wire protocol. A file-capable client must "
+        "encrypt exact original bytes. Never generate image bytes from a visible image or its description.",
+        {
+            **SESSION,
+            probatio.Required("offset"): probatio.All(int, probatio.Range(min=0, max=MAX_PHOTO_BYTES - 1)),
+            probatio.Required("encrypted_chunk"): probatio.All(
+                str, probatio.Length(min=84, max=MAX_ENCRYPTED_CHUNK)
+            ),
+        },
+        read_only=False,
+    ),
+    ToolSpec(
+        "finish_photo_upload",
+        "Verify and attach the original to the private album, or return its previous receipt. "
+        "Requires the draft revision from the upload session. An added photo revokes approval.",
+        SESSION,
+        read_only=False,
+        destructive=True,
+    ),
+    ToolSpec(
+        "cancel_photo_upload",
+        "Discard a pending upload session and its encrypted chunks.",
+        SESSION,
+        read_only=False,
     ),
     ToolSpec(
         "get_review_preview", "Read the preview and any fields that are missing before approval.", ARG_DRAFT

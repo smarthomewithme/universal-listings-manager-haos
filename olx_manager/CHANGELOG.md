@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.3.0
+
+- Add four write-only-in-policy photo transfer tools to the existing Home Assistant MCP.
+  Byte-capable clients can resume authenticated encrypted uploads with SHA-256 receipts.
+- Preserve exact JPG, PNG and WebP originals, generate previews and choose a cover without
+  changing listing fields. The draft revision and approval rules apply at finalization.
+- Accept private price suggestions through the central draft creation tool.
+- Add a SQLite schema migration for pending uploads. Restore a pre-update backup to roll
+  back to 1.2.x.
+
 ## 1.2.0
 
 - Add a companion Home Assistant integration for HACS. Register 14 ULM tools in the existing

@@ -38,7 +38,7 @@ docker run -d --name "$addon" --network "$network" --ip 172.30.32.11   --network
 # isolated acceptance test and is accessible only from the runner's loopback.
 docker run -d --name "$core" --network "$network" --ip 172.30.32.12 -p 127.0.0.1::8123   --mount "type=bind,source=$work,target=/config"   ghcr.io/home-assistant/home-assistant:2026.11.0 >/dev/null
 addr="$(docker port "$core" 8123/tcp)"
-if ! python scripts/ha_mcp_acceptance.py "http://$addr" "$core" "$network" "$image"; then
+if ! python scripts/ha_mcp_acceptance.py "http://$addr" "$core" "$network" "$image" "$addon"; then
   docker logs --tail 90 "$core"
   docker logs --tail 70 "$addon"
   exit 1

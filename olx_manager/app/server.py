@@ -2,12 +2,14 @@ import logging
 import socket
 from contextlib import AsyncExitStack, ExitStack
 
+import anyio
 import uvicorn
 from starlette.responses import JSONResponse, PlainTextResponse
 
 from ha_llm_bridge import build_ha_llm_bridge
 from marketplace import OlxMarketplaceAdapter
 from mcp_service import build_mcp, build_tool_server
+from photo_upload import PhotoUploads
 from publication import PublicationService
 from security import SCOPE, McpAuth
 from settings import HA_LLM_PORT, MCP_PORT, OLX_PORT, PANEL_PORT, Settings
@@ -31,10 +33,11 @@ class Service:
             build_mcp(self.store, self.publication, self.olx, settings) if settings.mcp_enabled else None
         )
 
+        self.photos = PhotoUploads(self.store)
         self.ha_llm = None
         if settings.ha_llm_token:
             registry = build_tool_server(self.store, self.publication, self.olx, settings, actor="ha_llm")
-            self.ha_llm = build_ha_llm_bridge(settings, registry)
+            self.ha_llm = build_ha_llm_bridge(settings, registry, self.photos)
 
     async def lifespan(self, receive, send):
         await receive()
@@ -45,9 +48,21 @@ class Service:
             if self.mcp:
                 await stack.enter_async_context(self.mcp.router.lifespan_context(self.mcp))
             self.publication.recover_interrupted()
+            await anyio.to_thread.run_sync(self.photos.cleanup)
+            workers = await stack.enter_async_context(anyio.create_task_group())
+            workers.start_soon(self._expire_photo_uploads)
             await send({"type": "lifespan.startup.complete"})
             await receive()
+            workers.cancel_scope.cancel()
         await send({"type": "lifespan.shutdown.complete"})
+
+    async def _expire_photo_uploads(self):
+        while True:
+            await anyio.sleep(300)
+            try:
+                await anyio.to_thread.run_sync(self.photos.cleanup)
+            except Exception:  # noqa: BLE001 - Never log upload details or fail the running service.
+                LOG.warning("Nie udało się posprzątać wygasłych transferów zdjęć.")
 
     async def __call__(self, scope, receive, send):
         if scope["type"] == "lifespan":

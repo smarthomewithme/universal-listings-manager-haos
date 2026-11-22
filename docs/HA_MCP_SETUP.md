@@ -7,13 +7,13 @@ repository provides the HAOS app and the HACS integration.
 
 ## Installation in Polish
 
-1. W sklepie aplikacji HA zaktualizuj **Universal Listings Manager** do **1.2.0**. Otwórz
+1. W sklepie aplikacji HA zaktualizuj **Universal Listings Manager** do **1.3.0**. Otwórz
    kartę **Konfiguracja** aplikacji. Ustaw `ha_llm_token` na nowy, losowy token o długości co
    najmniej 32 znaków (litery, cyfry, `_` lub `-`). Zapisz i uruchom ponownie aplikację.
    Token możesz wygenerować w menedżerze haseł. Zachowaj go do następnego kroku.
 2. W **HACS → ⋮ → Własne repozytoria** dodaj
    `https://github.com/smarthomewithme/universal-listings-manager-haos` jako **Integracja**.
-   Pobierz **Universal Listings Manager 1.2.0** i zrestartuj **Home Assistant Core**.
+   Pobierz **Universal Listings Manager 1.3.0** i zrestartuj **Home Assistant Core**.
    Wymagany jest Core **2026.11.0** lub nowszy.
 3. Otwórz **Ustawienia → Urządzenia i usługi → Dodaj integrację → Universal Listings Manager**.
    Wklej ten sam token. Dla instalacji z podanego URL domyślny host to
@@ -45,7 +45,7 @@ ani danych ogłoszeń. Po zmianie tokenu w aplikacji wprowadź nowy również w 
 | Main endpoint | ULM capabilities |
 |---|---|
 | Read-only | List and read listings, list album, get thumbnail, preview, approval status, last known OLX status and activity log |
-| Writes enabled | The above plus create or edit a draft, change price, reorder photos, request owner review and simulate publication |
+| Writes enabled | The above plus create or edit a draft, change price, reorder photos, transfer exact originals from byte-capable clients, request owner review and simulate publication |
 
 The selected active admin account is the only HA principal that can list or invoke ULM tools.
 Other accounts continue to see the tools allowed by their existing HA configuration. The ULM
@@ -59,8 +59,8 @@ route cannot invoke the live publish operation, even if OLX write access is enab
 
 The HA Core MCP server in 2026.11 serializes LLM tool results as JSON text. The thumbnail tool
 returns a single 256px JPEG as Base64 with media type and dimensions. An MCP client must decode
-it to display the image. The ULM panel displays originals and previews; full image upload remains
-in the panel. The existing direct ULM MCP can still return native MCP image content.
+it to display the image. The ULM panel displays originals and previews; originals can be uploaded in the panel or through the [photo bridge](CHATGPT_PHOTO_BRIDGE.md)
+by a client with access to their source bytes. The existing direct ULM MCP can still return native MCP image content.
 
 References: [Home Assistant MCP](https://www.home-assistant.io/integrations/mcp_server/) ·
 [HACS custom repositories](https://hacs.dev/docs/faq/custom_repositories/).

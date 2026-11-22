@@ -1,5 +1,5 @@
-# Container image 1.2.0
+# Container image 1.3.0
 
-- amd64 image: `ghcr.io/smarthomewithme/universal-listings-manager-haos:1.2.0`
-- Digest: `sha256:0289ccc79f032495fcca443d7a7fb17ec1c571ae6d50d010428d4f2b5d29f0fe`
-- Source commit: `16d8043817da71d5d84a868761e70cc231665ae0`
+- amd64 image: `ghcr.io/smarthomewithme/universal-listings-manager-haos:1.3.0`
+- Digest: `sha256:a88abb5ac504378f7ed32105e8e0a32a783cd284313cb84981cbd1cc47720895`
+- Source commit: `421ba76631691f52be0e974f2a38e2e811439e0f`

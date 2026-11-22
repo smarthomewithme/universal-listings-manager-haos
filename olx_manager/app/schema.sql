@@ -56,3 +56,15 @@ CREATE TABLE IF NOT EXISTS publication_media (
     asset_id TEXT NOT NULL REFERENCES media_assets(id),
     rotation INTEGER NOT NULL, PRIMARY KEY(attempt_id, asset_id)
 );
+CREATE TABLE IF NOT EXISTS photo_uploads (
+    id TEXT PRIMARY KEY, request_id TEXT NOT NULL UNIQUE, input_hash TEXT NOT NULL,
+    draft_id TEXT NOT NULL REFERENCES drafts(id), revision INTEGER NOT NULL,
+    filename TEXT NOT NULL, mime TEXT NOT NULL, size INTEGER NOT NULL, sha256 TEXT NOT NULL,
+    primary_photo INTEGER NOT NULL, private_key BLOB, received INTEGER NOT NULL DEFAULT 0,
+    state TEXT NOT NULL, expires_at INTEGER NOT NULL, receipt TEXT
+);
+CREATE TABLE IF NOT EXISTS photo_upload_chunks (
+    upload_id TEXT NOT NULL REFERENCES photo_uploads(id) ON DELETE CASCADE,
+    start INTEGER NOT NULL, sha256 TEXT NOT NULL, packet BLOB NOT NULL,
+    PRIMARY KEY (upload_id, start)
+);

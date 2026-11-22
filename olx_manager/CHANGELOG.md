@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.5.1
+
+- Accept opaque ChatGPT file IDs in the native photo bridge. OpenAI file inputs
+  do not require a `file_` prefix; missing file metadata now fails clearly.
+- Preserve signed HTTPS downloads, DNS/SSRF defenses, encrypted upload,
+  byte-level SHA-256 verification, draft revision checks and no live publication.
+- Add regression checks for valid opaque IDs, missing metadata and unsafe URLs.
+
+
 ## 1.5.0
 
 - Add a version-aware ULM integration sync. The HA integration only uses the official

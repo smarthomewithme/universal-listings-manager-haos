@@ -12,7 +12,7 @@ compatibility adapter that adds `_meta["openai/fileParams"] = ["files"]` only to
 `ulm_attach_chat_photos` on the existing `/api/mcp` URL.
 The tool accepts a top-level `files` array; each object includes `download_url`,
 `file_id`, and optionally `mime_type` and `file_name`.
-ChatGPT injects those objects from chat attachments. No separate plugin, ingress,
+ChatGPT injects those objects from chat attachments. File identifiers are opaque (no required `file_` prefix). Bare paths and file IDs without the ChatGPT-provided `download_url` cannot be uploaded. No separate plugin, ingress,
 public upload endpoint or paid API key is needed.
 
 The integration downloads the exact original over verified HTTPS with no redirects and

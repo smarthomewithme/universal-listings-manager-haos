@@ -7,9 +7,9 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .client import BridgeClient
 from .const import CONF_HA_USER, CONF_HOST, CONF_TOKEN
+from .integration_sync import start_integration_sync
 from .llm_api import ULMAPI
 from .mcp_file_metadata import install_chat_file_metadata
-from .integration_sync import start_integration_sync
 
 ULMConfigEntry = ConfigEntry[BridgeClient]
 

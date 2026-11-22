@@ -299,7 +299,7 @@ def main():
     set_read_only(mcp, True)
     tools = listed()
     ulm_tools = {name: item for name, item in tools.items() if name.startswith("ulm_")}
-    assert len(ulm_tools) == 8, list(ulm_tools)
+    assert len(ulm_tools) == 9, list(ulm_tools)
     assert "ulm_create_draft" not in tools and "ulm_get_draft" in tools
     assert all(item["annotations"]["readOnlyHint"] for item in ulm_tools.values())
     assert "create_draft" in tool("create_draft", error=True)

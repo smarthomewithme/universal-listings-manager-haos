@@ -93,6 +93,22 @@ class HALLMBridgeTests(unittest.TestCase):
         with self.assertRaises(ValidationError):
             Settings(ha_llm_token=self.token, mcp_bearer_token=self.token)
 
+    def test_capability_catalog_is_private_and_allowlisted(self):
+        catalog = self.bridge.get(API_PATH + "/catalog")
+        self.assertEqual(catalog.status_code, 200)
+        listed = {item["name"]: item for item in catalog.json()["items"]}
+        self.assertIn("create_draft", listed)
+        self.assertIn("simulate_publication", listed)
+        self.assertNotIn("publish_approved", listed)
+        self.assertNotIn("delete_draft", listed)
+        self.assertTrue(listed["get_draft"]["read_only"])
+        self.assertFalse(listed["update_price"]["read_only"])
+        self.assertIn("properties", listed["create_draft"]["input_schema"])
+        self.assertEqual(
+            self.bridge.get(API_PATH + "/catalog", headers={"Authorization": "Bearer bad"}).status_code,
+            401,
+        )
+
     def test_disabled_bridge_and_direct_mcp(self):
         cal = Service(Settings(data_dir=Path(self.temp.name) / "disabled"))
         with TestClient(cal, base_url="http://ulm:8102", client=("172.30.32.1", 10000)) as disabled:

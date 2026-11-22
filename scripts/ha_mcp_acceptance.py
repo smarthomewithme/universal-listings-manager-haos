@@ -144,9 +144,9 @@ def listed():
     return {tool["name"]: tool for tool in rpc("tools/list")["result"]["tools"]}
 
 
-def tool(name, *, error=False, **arguments):
-    result = rpc("tools/call", {"name": "ulm_" + name, "arguments": arguments})["result"]
-    assert bool(result.get("isError")) == error, (name, result.get("content"))
+def tool(operation, *, error=False, **arguments):
+    result = rpc("tools/call", {"name": "ulm_" + operation, "arguments": arguments})["result"]
+    assert bool(result.get("isError")) == error, (operation, result.get("content"))
     body = result["content"][0]["text"]
     return body if error else json.loads(body)
 
@@ -299,7 +299,7 @@ def main():
     set_read_only(mcp, True)
     tools = listed()
     ulm_tools = {name: item for name, item in tools.items() if name.startswith("ulm_")}
-    assert len(ulm_tools) == 8, list(ulm_tools)
+    assert len(ulm_tools) == 9, list(ulm_tools)
     assert "ulm_create_draft" not in tools and "ulm_get_draft" in tools
     assert all(item["annotations"]["readOnlyHint"] for item in ulm_tools.values())
     assert "create_draft" in tool("create_draft", error=True)
@@ -309,7 +309,8 @@ def main():
 
     set_read_only(mcp, False)
     tools = listed()
-    assert len([name for name in tools if name.startswith("ulm_")]) == 19
+    assert len([name for name in tools if name.startswith("ulm_")]) == 21
+    assert "ulm_list_backend_tools" in tools and "ulm_call_backend_tool" in tools
     attached = tools["ulm_attach_chat_photos"]
     assert attached["_meta"]["openai/fileParams"] == ["files"], attached
     file_schema = attached["inputSchema"]["properties"]["files"]["items"]
@@ -341,7 +342,14 @@ def main():
     assert len(tool("list_drafts")["items"]) == 1
     draft_id = created["id"]
     args = {"draft_id": draft_id}
+    catalog = tool("list_backend_tools")
+    names = {item["name"] for item in catalog["items"]}
+    assert {"get_draft", "create_draft", "list_drafts", "simulate_publication"} <= names
+    assert "publish_approved" not in names and "delete_draft" not in names
     loaded = tool("get_draft", **args)
+    assert tool("call_backend_tool", name="get_draft", arguments=args) == loaded
+    forbidden = tool("call_backend_tool", error=True, name="publish_approved", arguments={})
+    assert "TOOL_NOT_ALLOWED" in forbidden
     updated = tool("update_price", **args, expected_revision=loaded["revision"], price_minor=15600)
     assert updated["fields"]["price_minor"] == 15600
     assert "REVISION_CONFLICT" in tool(

@@ -22,9 +22,7 @@ def load_validator():
     )
     parsed = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     method = next(
-        node
-        for node in parsed.body
-        if isinstance(node, ast.FunctionDef) and node.name == "_valid_source"
+        node for node in parsed.body if isinstance(node, ast.FunctionDef) and node.name == "_valid_source"
     )
     namespace = {"BridgeError": BridgeError, "ipaddress": ipaddress, "urlsplit": urlsplit}
     exec(compile(ast.Module(body=[method], type_ignores=[]), str(path), "exec"), namespace)

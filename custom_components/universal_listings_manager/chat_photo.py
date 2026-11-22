@@ -74,6 +74,13 @@ def _valid_source(file_info):
             or len(url) > 4096
         ):
             raise ValueError
+        try:
+            literal = ipaddress.ip_address(parsed.hostname)
+        except ValueError:
+            pass
+        else:
+            if not literal.is_global:
+                raise ValueError
     except ValueError:
         raise BridgeError("PHOTO_SOURCE", "Nieprawidłowy bezpieczny adres pliku ChatGPT.") from None
     return url
@@ -121,9 +128,7 @@ def _seal_chunk(session_id, server_public_key, offset, raw):
     ).derive(shared)
     nonce = secrets.token_bytes(12)
     ciphertext = ChaCha20Poly1305(key).encrypt(nonce, raw, offset.to_bytes(4, "big"))
-    return base64.b64encode(private.public_key().public_bytes_raw() + nonce + ciphertext).decode(
-        "ascii"
-    )
+    return base64.b64encode(private.public_key().public_bytes_raw() + nonce + ciphertext).decode("ascii")
 
 
 async def attach_chat_photos(client, args):
@@ -167,9 +172,7 @@ async def attach_chat_photos(client, args):
                 raise BridgeError("PHOTO_PROTOCOL", "Nieobsługiwana odpowiedź mostu zdjęć.")
             while offset < len(raw):
                 payload = raw[offset : offset + CHUNK_BYTES]
-                encrypted = _seal_chunk(
-                    transfer["session_id"], transfer["public_key"], offset, payload
-                )
+                encrypted = _seal_chunk(transfer["session_id"], transfer["public_key"], offset, payload)
                 state = await client.call(
                     "upload_photo_chunk",
                     {
@@ -182,9 +185,7 @@ async def attach_chat_photos(client, args):
                 if next_offset != offset + len(payload):
                     raise BridgeError("PHOTO_PROTOCOL", "Błąd przesyłania fragmentu zdjęcia.")
                 offset = next_offset
-            receipt = await client.call(
-                "finish_photo_upload", {"session_id": transfer["session_id"]}
-            )
+            receipt = await client.call("finish_photo_upload", {"session_id": transfer["session_id"]})
         else:
             receipt = transfer
 

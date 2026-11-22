@@ -193,18 +193,14 @@ TOOL_SPECS = (
                         probatio.Required("download_url"): probatio.All(
                             str, probatio.Length(min=8, max=4096)
                         ),
-                        probatio.Required("file_id"): probatio.All(
-                            str, probatio.Length(min=6, max=240)
-                        ),
+                        probatio.Required("file_id"): probatio.All(str, probatio.Length(min=6, max=240)),
                         probatio.Optional("mime_type"): str,
                         probatio.Optional("file_name"): str,
                     }
                 ],
                 probatio.Length(min=1, max=10),
             ),
-            probatio.Optional("primary_index"): probatio.All(
-                int, probatio.Range(min=0, max=9)
-            ),
+            probatio.Optional("primary_index"): probatio.All(int, probatio.Range(min=0, max=9)),
         },
         read_only=False,
         destructive=True,

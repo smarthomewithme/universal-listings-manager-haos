@@ -144,9 +144,9 @@ def listed():
     return {tool["name"]: tool for tool in rpc("tools/list")["result"]["tools"]}
 
 
-def tool(name, *, error=False, **arguments):
-    result = rpc("tools/call", {"name": "ulm_" + name, "arguments": arguments})["result"]
-    assert bool(result.get("isError")) == error, (name, result.get("content"))
+def tool(operation, *, error=False, **arguments):
+    result = rpc("tools/call", {"name": "ulm_" + operation, "arguments": arguments})["result"]
+    assert bool(result.get("isError")) == error, (operation, result.get("content"))
     body = result["content"][0]["text"]
     return body if error else json.loads(body)
 

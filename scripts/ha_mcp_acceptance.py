@@ -309,7 +309,12 @@ def main():
 
     set_read_only(mcp, False)
     tools = listed()
-    assert len([name for name in tools if name.startswith("ulm_")]) == 18
+    assert len([name for name in tools if name.startswith("ulm_")]) == 19
+    attached = tools["ulm_attach_chat_photos"]
+    assert attached["_meta"]["openai/fileParams"] == ["files"], attached
+    file_schema = attached["inputSchema"]["properties"]["files"]["items"]
+    assert set(file_schema["required"]) == {"download_url", "file_id"}, file_schema
+    assert {"mime_type", "file_name"} <= set(file_schema["properties"]), file_schema
     assert any(not name.startswith("ulm_") for name in tools)
     assert "ulm_approve" not in tools and "ulm_publish_approved" not in tools
 

@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.4.0
+
+- Add ChatGPT-native file attachment input to the existing central Home Assistant MCP
+  with the documented openai/fileParams contract; no second plugin, domain or port.
+- Stream signed file downloads through a public-address-only resolver and strict HTTPS,
+  no redirects, a 12 MB cap and matching JPG/PNG/WebP magic checks.
+- Reuse the existing encrypted ULM Photo Bridge, original-image SHA-256 receipts,
+  revision locking, cover-photo selection, quota and private owner approval rules.
+- A minimal scoped HA Core 2026.11 MCP formatter compatibility hook adds file metadata
+  only for ulm_attach_chat_photos and removes itself on integration unload.
+- This integration targets Home Assistant Core 2026.11.x. Other Core revisions require
+  verifying the private MCP formatter seam before promoting an update.
+
+
 ## 1.3.0
 
 - Add four write-only-in-policy photo transfer tools to the existing Home Assistant MCP.

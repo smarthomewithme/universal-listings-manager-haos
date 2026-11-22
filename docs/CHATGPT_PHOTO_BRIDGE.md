@@ -4,6 +4,28 @@ This feature adds photo uploads to the same Home Assistant MCP connection that m
 It uses the Hub's existing HA credentials and the ULM integration token. The app listens on its
 existing internal port. There is no public upload URL, URL fetcher or extra ChatGPT connection.
 
+## ChatGPT native photo attachments (ULM 1.4.0)
+
+The official HA MCP server does not propagate OpenAI's file metadata for custom LLM
+tools. The companion HA integration now adds a narrowly scoped and reversible
+compatibility adapter that adds `_meta["openai/fileParams"] = ["files"]` only to
+`ulm_attach_chat_photos` on the existing `/api/mcp` URL.
+The tool accepts a top-level `files` array; each object includes `download_url`,
+`file_id`, and optionally `mime_type` and `file_name`.
+ChatGPT injects those objects from chat attachments. No separate plugin, ingress,
+public upload endpoint or paid API key is needed.
+
+The integration downloads the exact original over verified HTTPS with no redirects and
+a DNS resolver that refuses non-public destinations, then sends encrypted chunks
+through ULM's existing four upload tools. It does not log signed URLs or file
+contents. The resulting draft stays unpublished.
+
+This scoped formatter adaptation depends on private HA Core 2026.11 APIs; verify
+it against the official Core build whenever HA Core is updated. The CI workflow
+verifies the emitted tool metadata on a real Home Assistant Core instance.
+Real ChatGPT-to-HAOS end-to-end transfer must still be verified after upgrading
+both app and integration and refreshing SHWM tools.
+
 ## Which ChatGPT clients can send a photo?
 
 The official [OpenAI plugin reference](https://developers.openai.com/plugins/reference#file-apis)

@@ -181,6 +181,36 @@ TOOL_SPECS = (
         read_only=False,
     ),
     ToolSpec(
+        "attach_chat_photos",
+        "Attach original photos supplied in this ChatGPT conversation to an existing ULM draft. "
+        "Use the actual attached files; never invent a URL or replace bytes with visual descriptions. "
+        "Read the latest draft revision first. Does not approve or publish.",
+        {
+            **ARG_REVISION,
+            probatio.Required("files"): probatio.All(
+                [
+                    {
+                        probatio.Required("download_url"): probatio.All(
+                            str, probatio.Length(min=8, max=4096)
+                        ),
+                        probatio.Required("file_id"): probatio.All(
+                            str, probatio.Length(min=6, max=240)
+                        ),
+                        probatio.Optional("mime_type"): str,
+                        probatio.Optional("file_name"): str,
+                    }
+                ],
+                probatio.Length(min=1, max=10),
+            ),
+            probatio.Optional("primary_index"): probatio.All(
+                int, probatio.Range(min=0, max=9)
+            ),
+        },
+        read_only=False,
+        destructive=True,
+        idempotent=False,
+    ),
+    ToolSpec(
         "get_review_preview", "Read the preview and any fields that are missing before approval.", ARG_DRAFT
     ),
     ToolSpec(
@@ -204,7 +234,7 @@ TOOL_SPECS = (
     ),
     ToolSpec("get_activity_log", "Read recent activity for a draft, including edits and reviews.", ARG_DRAFT),
 )
-TOOL_NAMES = frozenset(spec.name for spec in TOOL_SPECS)
+TOOL_NAMES = frozenset(spec.name for spec in TOOL_SPECS if spec.name != "attach_chat_photos")
 
 
 async def authorized_user(hass, context, allowed_user):
@@ -239,7 +269,12 @@ class ULMTool(llm.Tool):
             return llm.ToolResult(data={"code": "UNAUTHORIZED"}, error=True)
         try:
             arguments = self.parameters(tool_input.tool_args)
-            result = await self._client.call(self._target, arguments)
+            if self._target == "attach_chat_photos":
+                from .chat_photo import attach_chat_photos
+
+                result = await attach_chat_photos(self._client, arguments)
+            else:
+                result = await self._client.call(self._target, arguments)
         except probatio.Invalid:
             return llm.ToolResult(data={"code": "INVALID_ARGUMENTS"}, error=True)
         except BridgeError as exc:

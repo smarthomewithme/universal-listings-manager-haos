@@ -59,10 +59,16 @@ def _filename(file_info, mime):
 
 
 def _valid_source(file_info):
-    file_id = file_info["file_id"]
-    if not file_id.startswith("file_") or len(file_id) > 240:
-        raise BridgeError("PHOTO_SOURCE", "Brak prawidłowego identyfikatora pliku ChatGPT.")
-    url = file_info["download_url"]
+    # ChatGPT file IDs are opaque; no `file_` prefix is required.
+    # The temporary HTTPS download URL must be validated independently.
+    if not isinstance(file_info, dict):
+        raise BridgeError("PHOTO_SOURCE", "ChatGPT nie przekazał metadanych załącznika.")
+    file_id = file_info.get("file_id")
+    if not isinstance(file_id, str) or not file_id.strip() or len(file_id) > 240:
+        raise BridgeError("PHOTO_SOURCE", "ChatGPT nie przekazał prawidłowego identyfikatora pliku.")
+    url = file_info.get("download_url")
+    if not isinstance(url, str):
+        raise BridgeError("PHOTO_SOURCE", "ChatGPT nie przekazał adresu pobierania załącznika.")
     try:
         parsed = urlsplit(url)
         if (

@@ -59,9 +59,7 @@ def start_integration_sync(hass, client):
                         "update", "install", {"entity_id": state.entity_id}, blocking=True
                     )
                 except Exception:
-                    _LOGGER.exception(
-                        "ULM Marketplace synchronization failed; leaving HA Core unchanged"
-                    )
+                    _LOGGER.exception("ULM Marketplace synchronization failed; leaving HA Core unchanged")
                 return
 
     def spawn_check(_now=None):

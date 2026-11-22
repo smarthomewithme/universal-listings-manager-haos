@@ -8,9 +8,7 @@ without a running Home Assistant instance.
 
 import re
 
-RELEASE_PREFIX = (
-    "https://github.com/smarthomewithme/universal-listings-manager-haos/releases/tag/v"
-)
+RELEASE_PREFIX = "https://github.com/smarthomewithme/universal-listings-manager-haos/releases/tag/v"
 VERSION_RE = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+$")
 
 

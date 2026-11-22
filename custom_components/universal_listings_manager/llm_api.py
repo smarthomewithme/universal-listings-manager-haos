@@ -292,7 +292,10 @@ class ULMTool(llm.Tool):
                 result = await self._client.catalog()
             elif self._target == "call_backend_tool":
                 if arguments["name"] in {
-                    "publish_approved", "refresh_publication", "delete_draft", "listings_approve"
+                    "publish_approved",
+                    "refresh_publication",
+                    "delete_draft",
+                    "listings_approve",
                 }:
                     raise BridgeError("TOOL_NOT_ALLOWED", "ULM does not expose this operation.")
                 result = await self._client.call(arguments["name"], arguments["arguments"])
